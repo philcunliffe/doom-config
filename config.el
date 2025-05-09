@@ -40,7 +40,7 @@
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
-(setq org-directory "~/org/")
+(setq org-directory (getenv "ORG_HOME"))
 
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
@@ -69,10 +69,36 @@
 ;; To get information about any of these functions/macros, move the cursor over
 ;; the highlighted symbol at press 'K' (non-evil users must press 'C-c c k').
 ;; This will open documentation for it, including demos of how they are used.
+;; (use-package obsidian
+  ;; :config
+  ;; (global-obsidian-mode t)
+  ;; (obsidian-backlinks-mode t)
+  ;; :custom
+  ;; ;; location of obsidian vault
+  ;; (obsidian-directory "~/workspace/filco/garden")
+  ;; ;; Default location for new notes from `obsidian-capture'
+  ;; (obsidian-inbox-directory "Inbox")
+  ;; ;; Useful if you're going to be using wiki links
+  ;; (markdown-enable-wiki-links t)
+
+  ;; ;; These bindings are only suggestions; it's okay to use other bindings
+  ;; :bind (:map obsidian-mode-map
+              ;; ;; Create note
+              ;; ("C-c C-n" . obsidian-capture)
+              ;; ;; If you prefer you can use `obsidian-insert-wikilink'
+              ;; ("C-c C-l" . obsidian-insert-link)
+              ;; ;; Open file pointed to by link at point
+              ;; ("C-c C-o" . obsidian-follow-link-at-point)
+              ;; ;; Open a different note from vault
+              ;; ("C-c C-p" . obsidian-jump)
+              ;; ;; Follow a backlink for the current file
+              ;; ("C-c C-b" . obsidian-backlink-jump)))
+
 (use-package! org-roam
   :ensure t
   :custom
-  (org-roam-directory (file-truename "~/org-roam"))
+  (org-roam-directory (file-truename (getenv "ORG_HOME")))
+  (setq org-roam-file-extensions '("org"))
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n g" . org-roam-graph)
@@ -82,17 +108,10 @@
          ("C-c n j" . org-roam-dailies-capture-today))
   :config
   ;; If you're using a vertical completion framework, you might want a more informative completion interface
-  (setq org-roam-node-display-template (concat "${hierarchy}:${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
+  (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
   (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
   (require 'org-roam-protocol)
-  (setq org-roam-capture-templates
-      '(("d" "default" plain
-         "%?"
-         :if-new (file+head "${slug}.org"
-                            "#+title: ${hierarchy-title}\n")
-         :immediate-finish t
-         :unnarrowed t)))
   )
 
 (use-package consult-org-roam
@@ -115,22 +134,51 @@
    (consult-customize
     consult-org-roam-forward-links
     :preview-key "M-.")
+   (setq org-roam-capture-templates
+   '(("d" "default" plain "%?"
+      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+      :unnarrowed t)
+     ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Project")
+      :unnarrowed t)))
    :bind (("C-c n e" . consult-org-roam-file-find)
-	   ("C-c n b" . consult-org-roam-backlinks)
-	   ("C-c n B" . consult-org-roam-backlinks-recursive)
-	   ("C-c n l" . consult-org-roam-forward-links)
-	   ("C-c n r" . consult-org-roam-search))
+          ("C-c n b" . consult-org-roam-backlinks)
+          ("C-c n B" . consult-org-roam-backlinks-recursive)
+          ("C-c n l" . consult-org-roam-forward-links)
+          ("C-c n r" . consult-org-roam-search))
    )
 
-(use-package! dendroam
-  :after org-roam
-  (setq dendroam-capture-templates
-      '(("t" "Time note" entry
-         "* %?"
-         :if-new (file+head "${current-file}.%<%Y.%m.%d>.org"
-                            "#+title: %^{title}\n"))
-        ("s" "Scratch note" entry
-         "* %?"
-         :if-new (file+head "scratch.%<%Y.%m.%d.%.%M%S%3N>.org"
-                            "#+title: %^{title}\n"))))
-  )
+(use-package org-recur
+  :hook ((org-mode . org-recur-mode)
+         (org-agenda-mode . org-recur-agenda-mode))
+  :demand t
+  :config
+  (define-key org-recur-mode-map (kbd "C-c d") 'org-recur-finish)
+
+  ;; Rebind the 'd' key in org-agenda (default: `org-agenda-day-view').
+  (define-key org-recur-agenda-mode-map (kbd "d") 'org-recur-finish)
+  (define-key org-recur-agenda-mode-map (kbd "C-c d") 'org-recur-finish)
+
+  (setq org-recur-finish-done t
+        org-recur-finish-archive t))
+;; 
+;; (use-package! md-roam
+;;   :after org-roam
+;;   :init
+;;   (setq org-roam-file-extensions '("org" "md")) ; enable Org-roam for a markdown extension
+;;   :config
+;;   (md-roam-mode 1)
+;;   (setq md-roam-file-extension "md")    ; default "md". Specify an extension such as "markdown"
+;;   ;; remove @ citation
+;;   (setq org-roam-capture-templates
+;;         '(("m" "Markdown" plain "" :target
+;;            (file+head "${title}.md"
+;;                       "---\ntitle: ${title}\nid: %<%Y-%m-%dT%H%M%S>\ncategory: \n---\n")
+;;            :unnarrowed t)
+;;           ;; ("d" "default" plain "%?" :target
+;;           ;;  (file+head "${slug}.org" "#+title: ${title}\n")
+;;           ;;  :unnarrowed t)
+;;           )
+;;         )
+;;   )
+

@@ -50,5 +50,5 @@
 
 (package! consult-org-roam)
 (package! deadgrep)
-(package! dendroam
-  :recipe (:host github :repo "vicrdguez/dendroam" :branch "main"))
+(package! obsidian)
+(package! org-recur)
