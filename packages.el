@@ -52,3 +52,6 @@
 (package! deadgrep)
 (package! obsidian)
 (package! org-recur)
+(package! ob-mermaid)
+(package! dendroam
+  :recipe (:host github :repo "philcunliffe/dendroam" :branch "main"))
