@@ -18,7 +18,7 @@
 ;; - `doom-symbol-font' -- for symbols
 ;; - `doom-serif-font' -- for the `fixed-pitch-serif' face
 ;;
-;; See 'C-h v doom-font' for documentation and more examples of what they
+;; SEE 'C-H v doom-font' for documentation and more examples of what they
 ;; accept. For example:
 ;;
 ;;(setq doom-font (font-spec :family "Fira Code" :size 12 :weight 'semi-light)
@@ -36,12 +36,15 @@
 
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
-(setq display-line-numbers-type t)
+(setq display-line-numbers-type 'relative)
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
 (setq org-directory (getenv "ORG_HOME"))
 
+;; Tab configuration
+(setq-default tab-width 2)        ; Set tab display width to 4 spaces
+(setq-default indent-tabs-mode nil) ; Use spaces instead of tabs for indentation
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
 ;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
@@ -185,7 +188,52 @@
 
   (setq org-recur-finish-done t
         org-recur-finish-archive t))
-;; 
+
+;; Theme switching
+(setq calendar-latitude 40.712776)
+(setq calendar-longitude -74.005974)
+
+(use-package circadian
+  :config
+  (setq circadian-themes '((:sunrise . doom-gruvbox-light)
+                           (:sunset . (doom-gruvbox))))
+  (add-hook 'emacs-startup-hook #'circadian-setup)
+  (circadian-setup))
+
+(use-package! gptel
+  :defer t
+  :init
+  (map! :leader
+        (:prefix ("j" . "ai")
+         :desc "Open chat" "c" #'gptel
+         :desc "Add file/buffer to context" "a" #'gptel-add
+         :desc "Rewrite/Refactor" "r" #'gptel-rewrite
+         :desc "Send region to chat buffer" "l" #'gptel-send
+         :desc "Open menu" "m" #'gptel-menu))
+  :config
+  ;; Set up Ollama backend with your custom host
+  (setq gptel-backend
+        (gptel-make-ollama "Ollama"
+                          :host "192.168.50.248:11434"
+                          :stream t
+                          :models '(gemma3:4b
+                                   )))
+
+  ;; Set default model (adjust to whatever model you have available)
+  (setq gptel-model 'gemma3:4b)
+
+  ;; Optional: Set default mode for chat buffers
+  (setq gptel-default-mode 'org-mode)
+
+  ;; Optional: Customize prompt formatting
+  (setq gptel-prompt-prefix-alist
+        '((markdown-mode . "# Prompt\n\n")
+          (org-mode . "* Prompt\n\n")))
+
+  (setq gptel-response-prefix-alist
+        '((markdown-mode . "# Response\n\n")
+          (org-mode . "* Response\n\n"))))
+;;
 ;; (use-package! md-roam
 ;;   :after org-roam
 ;;   :init
@@ -225,3 +273,38 @@
 
 (use-package! dendroam
   :after org-roam)
+
+(setq org-capture-templates
+      '(("t" "Templates for todos")
+        ("tl" "Personal todo with link" entry (file+headline +org-capture-todo-file "Inbox")
+         "* TODO %?\n%i\n%a" :prepend t)
+        ("tt" "Personal todo" entry (file+headline +org-capture-todo-file "Inbox")
+         "* TODO %?\n%i" :prepend t)
+        ("n" "Personal notes" entry (file+headline +org-capture-notes-file "Inbox")
+         "* %u %?\n%i\n%a" :prepend t)
+        ("j" "Journal" entry (file+olp+datetree +org-capture-journal-file)
+         "* %U %?\n%i\n%a" :prepend t)
+        ("p" "Templates for projects")
+        ("pt" "Project-local todo" entry
+         (file+headline +org-capture-project-todo-file "Inbox") "* TODO %?\n%i\n%a"
+         :prepend t)
+        ("pn" "Project-local notes" entry
+         (file+headline +org-capture-project-notes-file "Inbox") "* %U %?\n%i\n%a"
+         :prepend t)
+        ("pc" "Project-local changelog" entry
+         (file+headline +org-capture-project-changelog-file "Unreleased")
+         "* %U %?\n%i\n%a" :prepend t)
+        ("o" "Centralized templates for projects")
+        ("ot" "Project todo" entry #'+org-capture-central-project-todo-file
+         "* TODO %?\n %i\n %a" :heading "Tasks" :prepend nil)
+        ("on" "Project notes" entry #'+org-capture-central-project-notes-file
+         "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
+        ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file
+         "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)))
+
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "PROJ(p)" "EVENT(e)" "LOOP(r)" "STRT(s)" "WAIT(w)" "HOLD(h)" "IDEA(i)"
+         "|" "DONE(d)" "KILL(k)")
+        (sequence "[ ](T)" "[-](S)" "[?](W)" "|" "[X](D)")
+        (sequence "|" "OKAY(o)" "YES(y)" "NO(n)")))
+

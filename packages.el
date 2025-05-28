@@ -55,3 +55,5 @@
 (package! ob-mermaid)
 (package! dendroam
   :recipe (:host github :repo "philcunliffe/dendroam" :branch "main"))
+(package! gptel :recipe (:nonrecursive t))
+(package! circadian)
